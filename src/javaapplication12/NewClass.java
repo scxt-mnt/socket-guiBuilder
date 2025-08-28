@@ -4,10 +4,10 @@
  */
 package javaapplication12;
 
+import java.net.Socket;
 import java.sql.*;
 import java.io.*;
 import java.net.ServerSocket;
-import java.net.Socket;
 
 /**
  *
@@ -17,42 +17,52 @@ public class NewClass {
 
     public NewClass() {
         try {
-            int port = 8080;
-            ServerSocket portListener = new ServerSocket(port);
-            System.out.println(port > 0 ? "running on " + port : "no port");
-            while (true) {
-                Socket socks = portListener.accept();
-                System.out.println("request accepted");
-                InputStream stream = socks.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-                String line;
-                while ((line = reader.readLine()) != null && !line.isEmpty()) {
-                    System.out.println(line);
-                    try (Connection connect = DriverManager.getConnection(
-                            "jdbc:oracle:thin:@localhost:1521:xe",
-                            "c##myuser",
-                            "myaccount123"
-                    )) {
-                        connect.setAutoCommit(true);
-                        String queries = "INSERT INTO myTable(name) VALUES(?)";
-                        PreparedStatement ps = connect.prepareStatement(queries);
+            int PORT = 8080;
+            ServerSocket listener = new ServerSocket(PORT);
+            System.out.println("listening to port " + PORT);
 
-                        if (line != null) {
-                            ps.setString(1, line);
-                        }
-                        ps.executeUpdate();
-                        System.out.println("inserted: " + line);
+            while (true) {
+                Connection connect = null;
+                Socket socket = listener.accept();
+                InputStream stream = socket.getInputStream();
+                InputStreamReader read = new InputStreamReader(stream);
+                BufferedReader lineReader = new BufferedReader(read);
+                String line;
+                
+                while ((line = lineReader.readLine()) != null && !line.isEmpty()) {
+                    try {
+                        connect = DriverManager.getConnection(
+                                "jdbc:oracle:thin:@localhost:1521:xe",
+                                "c##myuser",
+                                "myaccount123"
+                        );
+
+                        String query = "SELECT * FROM myTable WHERE name = ?";
+                        PreparedStatement post = connect.prepareStatement(query);
+                        post.setString(1, line);
+                        ResultSet approved = post.executeQuery();
+                        boolean hasRes = approved.next();
+
+                        OutputStream out = socket.getOutputStream();
+                        PrintWriter writer = new PrintWriter(out, true);
+                        writer.println(hasRes);
 
                     } catch (SQLException e) {
                         e.printStackTrace();
+                    } finally {
+                        try {
+                            connect.close();
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
                     };
                 }
-
-                socks.close();
+                socket.close();
             }
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 }

@@ -4,7 +4,10 @@
  */
 package javaapplication12;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -20,6 +23,7 @@ public class login extends javax.swing.JFrame {
      */
     public login() {
         initComponents();
+
     }
 
     /**
@@ -51,15 +55,28 @@ public class login extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        try {
-            Socket socks = new Socket("localhost", 8080);
-            OutputStream stream = socks.getOutputStream();
-            
-            PrintWriter post = new PrintWriter(stream, true);
-            post.println(jTextField1.getText());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        new Thread(() -> {
+            try {
+                Socket socks = new Socket("localhost", 8080);
+                OutputStream out = socks.getOutputStream();
+
+                PrintWriter post = new PrintWriter(out, true);
+                post.println(jTextField1.getText());
+
+                InputStream stream = socks.getInputStream();
+                InputStreamReader read = new InputStreamReader(stream);
+                BufferedReader lineReader = new BufferedReader(read);
+
+                String isLog = lineReader.readLine();
+                if (Boolean.parseBoolean(isLog) == true) {
+                    System.out.println("access approved");
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
